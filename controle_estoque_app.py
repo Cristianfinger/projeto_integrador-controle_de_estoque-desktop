@@ -1,7 +1,7 @@
 # controle_estoque_app.py
 # Aplicativo de controle de estoque usando linguagem python, Tkinter e SQLite
 # Autor: Cristian Finger
-#data_inicio: 17.11.2025
+# data_inicio: 17.11.2025
 
 from tkinter import *
 from tkinter import ttk, messagebox, simpledialog, filedialog
@@ -107,7 +107,7 @@ def list_movimentacoes(limit=100):
                         FROM movimentacoes m JOIN produtos p ON m.produto_id = p.id
                         ORDER BY m.data DESC LIMIT ?""", (limit,), fetch=True)
 
-# --- GUI ---
+
 class App:
     def __init__(self, root):
         self.root = root
@@ -117,13 +117,43 @@ class App:
         self.refresh_produtos()
         self.check_alerts()
 
+    def excluir_produto(self):
+        sel = self.tree.selection()
+        if not sel:
+            messagebox.showwarning("Atenção", "Selecione um produto para excluir.")
+            return
+
+        item = sel[0]
+        pid = int(self.tree.item(item, "values")[0])
+
+        resp = messagebox.askyesno("Excluir Produto", f"Tem certeza que deseja excluir o produto ID {pid}?")
+        if not resp:
+            return
+
+        
+        delete_produto(pid)
+
+        messagebox.showinfo("Sucesso", "Produto removido com sucesso.")
+        self.refresh_produtos()
+
     def create_widgets(self):
-        # Frame de ações
+        
+        header = Frame(self.root, bg="#10f21c", height=50)
+        header.pack(fill=X)
+
+        Label(
+            header,
+            text="AVITEC - Controle de Estoque",
+            font=("Arial", 20),
+            bg="#edda0e"
+        ).pack(pady=10)
+
         frm = Frame(self.root)
         frm.pack(fill=X, padx=8, pady=6)
 
         Button(frm, text="Nova Categoria", command=self.nova_categoria).pack(side=LEFT, padx=4)
         Button(frm, text="Novo Produto", command=self.novo_produto).pack(side=LEFT, padx=4)
+        Button(frm, text="Excluir Produto", command=self.excluir_produto).pack(side=LEFT, padx=4)
         Button(frm, text="Registrar Entrada", command=lambda: self.registrar_mov('entrada')).pack(side=LEFT, padx=4)
         Button(frm, text="Registrar Saída", command=lambda: self.registrar_mov('saida')).pack(side=LEFT, padx=4)
         Button(frm, text="Exportar CSV", command=self.export_csv).pack(side=LEFT, padx=4)
@@ -134,7 +164,6 @@ class App:
         Button(frm, text="Buscar", command=self.on_search).pack(side=LEFT, padx=4)
         Button(frm, text="Limpar", command=self.on_clear_search).pack(side=LEFT, padx=4)
 
-        # Treeview de produtos
         cols = ("ID","Nome","Categoria","Preço","Qtd","MinQtd")
         self.tree = ttk.Treeview(self.root, columns=cols, show='headings')
         for c in cols:
@@ -190,7 +219,8 @@ class App:
         qty = simpledialog.askinteger("Quantidade", f"Quantidade para {tipo}:")
         if qty is None: return
         obs = simpledialog.askstring("Observação (opcional)", "Observação:")
-        add_movimentacao(pid, tipo, qty if tipo=='entrada' else qty, obs or "")
+        
+        add_movimentacao(pid, tipo, qty, obs or "")
         messagebox.showinfo("Registrado", f"{tipo.capitalize()} registrado.")
         self.refresh_produtos()
 
@@ -234,8 +264,8 @@ class App:
                 alerts.append(f"{nome} (Qtd: {qtd} / Min: {minq})")
         if alerts:
             messagebox.showwarning("Alerta de Estoque Mínimo", "Produtos com estoque baixo:\n" + "\n".join(alerts))
-        # checar a cada 60 segundos
-        self.root.after(60000, self.check_alerts)
+        
+        self.root.after(10800000, self.check_alerts)
 
 class ProdutoDialog:
     def __init__(self, parent, produto=None):
